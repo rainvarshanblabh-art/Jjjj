@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>FISO Pumps</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080e1a;--surface:#0f1724;--surface2:#162035;--border:#1c2d47;
+  --accent:#00d4ff;--blue:#0066ff;--warn:#ffaa00;--danger:#ff4444;
+  --success:#00e676;--text:#e2eeff;--muted:#5a7299;
+  --font:'Syne',sans-serif;--mono:'DM Mono',monospace;
+  --radius:14px;--btn-h:56px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);max-width:480px;margin:0 auto;position:relative;}
+
+/* SCROLLABLE CONTENT */
+.app-shell{display:flex;flex-direction:column;height:100vh;}
+.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:16px 14px 100px;}
+.content::-webkit-scrollbar{display:none;}
+
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;max-width:480px;margin:0 auto;}
+.login-logo{font-size:38px;font-weight:800;margin-bottom:4px;text-align:center;}
+.login-logo span{color:var(--accent);}
+.login-tagline{font-size:11px;font-family:var(--mono);color:var(--muted);letter-spacing:2px;margin-bottom:32px;text-transform:uppercase;}
+.login-box{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;}
+.login-title{font-size:20px;font-weight:800;margin-bottom:16px;}
+.login-field{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;color:var(--text);font-family:var(--font);font-size:16px;margin-bottom:12px;outline:none;-webkit-appearance:none;}
+.login-field:focus{border-color:var(--blue);}
+.login-btn{width:100%;height:var(--btn-h);background:linear-gradient(135deg,var(--blue),var(--accent));border:none;border-radius:12px;color:#fff;font-weight:800;font-size:17px;font-family:var(--font);cursor:pointer;margin-top:4px;}
+.login-err{color:var(--danger);font-size:13px;font-family:var(--mono);margin-top:10px;text-align:center;}
+
+/* TOPBAR */
+.topbar{background:rgba(8,14,26,0.98);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.logo-main{font-size:20px;font-weight:800;}
+.logo-main span{color:var(--accent);}
+.logo-sub{font-size:9px;font-family:var(--mono);color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.role-chip{font-size:10px;font-family:var(--mono);border-radius:20px;padding:4px 12px;}
+.rc-staff{color:var(--accent);background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2);}
+.rc-manager{color:var(--warn);background:rgba(255,170,0,0.1);border:1px solid rgba(255,170,0,0.2);}
+.rc-admin{color:#ff6b6b;background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.2);}
+.rc-x{color:#c678ff;background:rgba(198,120,255,0.1);border:1px solid rgba(198,120,255,0.2);}
+.logout-btn{font-size:10px;font-family:var(--mono);color:var(--muted);cursor:pointer;margin-top:3px;letter-spacing:1px;}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:rgba(8,14,26,0.98);border-top:1px solid var(--border);display:flex;padding:8px 0 env(safe-area-inset-bottom,12px);z-index:50;}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;font-family:var(--mono);color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:0.3px;padding:4px 0;transition:color 0.2s;-webkit-tap-highlight-color:transparent;}
+.bnav-item.active{color:var(--accent);}
+.bnav-icon{font-size:22px;line-height:1;}
+
+/* PAGES */
+.page{display:none;}
+.page.active{display:block;animation:fadeUp 0.25s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* SECTION HEADERS */
+.page-tag{font-size:10px;font-family:var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;}
+.page-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:2px;}
+.page-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:16px;}
+
+/* STAFF SIMPLE UI */
+.big-btn{width:100%;height:72px;border:none;border-radius:16px;font-size:20px;font-weight:800;font-family:var(--font);cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:10px;-webkit-tap-highlight-color:transparent;}
+.big-btn-green{background:linear-gradient(135deg,#00a854,var(--success));color:#060c18;}
+.big-btn-red{background:linear-gradient(135deg,#cc0000,var(--danger));color:#fff;}
+.big-btn-blue{background:linear-gradient(135deg,var(--blue),var(--accent));color:#fff;}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;}
+.card-head{padding:14px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.card-title{font-size:14px;font-weight:700;}
+.card-body{padding:14px 16px;}
+.card-row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid rgba(28,45,71,0.5);font-size:13px;}
+.card-row:last-child{border-bottom:none;}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.sc-blue::before{background:linear-gradient(90deg,var(--blue),var(--accent));}
+.sc-green::before{background:var(--success);}
+.sc-warn::before{background:var(--warn);}
+.sc-red::before{background:var(--danger);}
+.stat-label{font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+.stat-val{font-size:28px;font-weight:800;line-height:1;}
+.sv-blue{color:var(--accent);}
+.sv-green{color:var(--success);}
+.sv-warn{color:var(--warn);}
+.sv-red{color:var(--danger);}
+.stat-hint{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:4px;}
+
+/* ALERTS */
+.alert{border-radius:12px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:13px;line-height:1.5;}
+.alert-red{background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.2);}
+.alert-warn{background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.2);}
+.alert-green{background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);}
+.alert-red strong{color:var(--danger);}
+.alert-warn strong{color:var(--warn);}
+.alert-green strong{color:var(--success);}
+
+/* BADGES */
+.badge{display:inline-flex;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;font-family:var(--mono);}
+.b-ok{background:rgba(0,230,118,0.1);color:var(--success);}
+.b-low{background:rgba(255,170,0,0.1);color:var(--warn);}
+.b-crit{background:rgba(255,68,68,0.1);color:var(--danger);}
+.b-blue{background:rgba(0,102,255,0.1);color:var(--accent);}
+.b-purple{background:rgba(198,120,255,0.1);color:#c678ff;}
+
+/* INPUTS */
+.field{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;color:var(--text);font-family:var(--font);font-size:16px;margin-bottom:10px;outline:none;-webkit-appearance:none;appearance:none;}
+.field:focus{border-color:var(--blue);}
+.field-label{font-size:11px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.field-row{display:flex;gap:8px;}
+.field-row .field{flex:1;margin-bottom:0;}
+
+/* BUTTONS */
+.btn-confirm{width:100%;height:var(--btn-h);background:linear-gradient(135deg,var(--blue),var(--accent));border:none;border-radius:12px;color:#fff;font-weight:800;font-size:16px;font-family:var(--font);cursor:pointer;margin-top:8px;}
+.btn-danger{width:100%;height:var(--btn-h);background:rgba(255,68,68,0.15);border:1px solid rgba(255,68,68,0.3);border-radius:12px;color:var(--danger);font-weight:800;font-size:16px;font-family:var(--font);cursor:pointer;margin-top:8px;}
+.btn-sm{padding:6px 12px;border-radius:8px;font-size:11px;font-family:var(--mono);cursor:pointer;border:none;font-weight:600;-webkit-tap-highlight-color:transparent;}
+.btn-edit{background:rgba(0,102,255,0.15);color:var(--accent);}
+.btn-del{background:rgba(255,68,68,0.12);color:var(--danger);}
+.btn-add{background:rgba(0,230,118,0.12);color:var(--success);}
+.btn-warn{background:rgba(255,170,0,0.12);color:var(--warn);}
+
+/* STOCK BAR */
+.stock-bar{height:5px;background:var(--border);border-radius:4px;overflow:hidden;margin:5px 0;}
+.stock-fill{height:100%;border-radius:4px;}
+.sf-ok{background:var(--success);}
+.sf-low{background:var(--warn);}
+.sf-crit{background:var(--danger);}
+
+/* CATEGORY ACCORDION */
+.cat-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+.cat-header{padding:16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.cat-name{font-size:15px;font-weight:700;}
+.cat-count{font-size:11px;font-family:var(--mono);color:var(--muted);}
+.cat-arrow{color:var(--muted);transition:transform 0.2s;font-size:12px;}
+.cat-arrow.open{transform:rotate(180deg);}
+.cat-body{display:none;border-top:1px solid var(--border);}
+.cat-body.open{display:block;}
+.part-row{padding:14px 16px;border-bottom:1px solid rgba(28,45,71,0.4);display:flex;align-items:center;justify-content:space-between;}
+.part-row:last-child{border-bottom:none;}
+.part-name{font-size:14px;font-weight:600;margin-bottom:2px;}
+.part-meta{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.part-right{text-align:right;flex-shrink:0;margin-left:8px;}
+.part-stock-num{font-size:16px;font-weight:800;margin-bottom:2px;}
+.part-actions{display:flex;gap:6px;margin-top:6px;justify-content:flex-end;flex-wrap:wrap;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:flex-end;justify-content:center;max-width:480px;margin:0 auto;}
+.modal-overlay.hidden{display:none;}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:24px;width:100%;max-height:85vh;overflow-y:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));}
+.modal::-webkit-scrollbar{display:none;}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:3px;}
+.modal-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:18px;}
+.modal-actions{display:flex;gap:10px;margin-top:10px;}
+.modal-confirm{flex:1;height:var(--btn-h);background:linear-gradient(135deg,var(--blue),var(--accent));border:none;border-radius:12px;color:#fff;font-weight:800;font-size:15px;font-family:var(--font);cursor:pointer;}
+.modal-cancel{height:var(--btn-h);padding:0 20px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--muted);font-weight:700;font-size:15px;font-family:var(--font);cursor:pointer;}
+.modal-danger-btn{flex:1;height:var(--btn-h);background:rgba(255,68,68,0.15);border:1px solid rgba(255,68,68,0.3);border-radius:12px;color:var(--danger);font-weight:800;font-size:15px;font-family:var(--font);cursor:pointer;}
+
+/* USED IN */
+.used-in-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface2);border-radius:10px;margin-bottom:6px;font-size:13px;}
+.used-in-pump{font-weight:600;}
+.used-in-qty{font-family:var(--mono);color:var(--accent);}
+
+/* ACTIVITY */
+.act-row{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(28,45,71,0.4);}
+.act-row:last-child{border-bottom:none;}
+.act-name{font-size:13px;font-weight:600;margin-bottom:2px;}
+.act-meta{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.act-qty{font-size:14px;font-family:var(--mono);font-weight:700;flex-shrink:0;margin-left:8px;}
+.act-plus{color:var(--success);}
+.act-minus{color:var(--danger);}
+
+/* BOM CARDS */
+.bom-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;}
+.bom-head{padding:14px 16px;background:var(--surface2);border-bottom:1px solid var(--border);}
+.bom-pump-name{font-size:15px;font-weight:700;margin-bottom:6px;}
+.bom-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.bom-cost-label{font-size:11px;font-family:var(--mono);color:var(--muted);}
+.bom-val{font-size:11px;font-family:var(--mono);}
+.bom-val-cost{color:var(--accent);}
+.bom-val-margin{color:var(--success);}
+.bom-row{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid rgba(28,45,71,0.3);font-size:13px;}
+.bom-row:last-child{border-bottom:none;}
+.bom-part{color:#a0b4d0;}
+.bom-part-cost{font-family:var(--mono);color:var(--muted);}
+.bom-footer{padding:12px 16px;background:rgba(0,230,118,0.03);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.bom-footer-label{font-size:11px;color:var(--muted);font-family:var(--mono);}
+.bom-footer-val{font-size:16px;font-weight:800;color:var(--success);}
+.bom-mat-row{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+.bom-mat-row .field{margin-bottom:0;}
+.remove-mat-btn{background:rgba(255,68,68,0.15);border:none;border-radius:8px;color:var(--danger);font-size:18px;padding:10px 14px;cursor:pointer;flex-shrink:0;}
+.add-mat-line{background:rgba(0,230,118,0.07);border:1px dashed rgba(0,230,118,0.3);border-radius:10px;color:var(--success);font-family:var(--mono);font-size:12px;padding:12px;width:100%;cursor:pointer;margin-bottom:10px;text-align:center;}
+
+/* CAPACITY */
+.cap-result{background:var(--surface2);border-radius:12px;padding:16px;margin-bottom:10px;}
+.cap-pump-name{font-size:16px;font-weight:800;margin-bottom:4px;}
+.cap-can-make{font-size:36px;font-weight:800;color:var(--success);line-height:1;}
+.cap-units{font-size:13px;color:var(--muted);font-family:var(--mono);margin-bottom:12px;}
+.cap-bottleneck{background:rgba(255,68,68,0.08);border:1px solid rgba(255,68,68,0.2);border-radius:10px;padding:10px 14px;font-size:12px;margin-bottom:10px;}
+.cap-mat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(28,45,71,0.4);font-size:12px;}
+.cap-mat-row:last-child{border-bottom:none;}
+
+/* PAYMENTS */
+.pay-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;}
+.pay-name{font-size:15px;font-weight:700;margin-bottom:3px;}
+.pay-detail{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:10px;}
+.pay-amount{font-size:24px;font-weight:800;margin-bottom:4px;}
+.pay-overdue{font-size:11px;font-family:var(--mono);}
+.pay-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px;}
+.pay-summary{background:var(--surface2);border-radius:12px;padding:16px;margin-bottom:14px;display:flex;justify-content:space-between;}
+.pay-sum-item{text-align:center;}
+.pay-sum-label{font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
+.pay-sum-val{font-size:18px;font-weight:800;}
+
+/* CHATBOT */
+.chat-messages{background:var(--surface2);border-radius:var(--radius);padding:14px;margin-bottom:12px;min-height:200px;max-height:350px;overflow-y:auto;}
+.chat-messages::-webkit-scrollbar{display:none;}
+.chat-bubble{margin-bottom:12px;max-width:85%;}
+.chat-bubble.user{margin-left:auto;}
+.chat-bubble.bot{margin-right:auto;}
+.bubble-text{padding:12px 14px;border-radius:14px;font-size:13px;line-height:1.5;}
+.chat-bubble.user .bubble-text{background:var(--blue);color:#fff;border-radius:14px 14px 4px 14px;}
+.chat-bubble.bot .bubble-text{background:var(--surface);border:1px solid var(--border);border-radius:14px 14px 14px 4px;}
+.bubble-meta{font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:3px;padding:0 4px;}
+.chat-input-row{display:flex;gap:8px;}
+.chat-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;color:var(--text);font-family:var(--font);font-size:15px;outline:none;}
+.chat-input:focus{border-color:var(--blue);}
+.chat-send{background:var(--blue);border:none;border-radius:12px;padding:14px 18px;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;}
+
+/* GOD MODE */
+.god-section{background:rgba(198,120,255,0.05);border:1px solid rgba(198,120,255,0.2);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.god-section-title{font-size:13px;font-weight:700;color:#c678ff;margin-bottom:12px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;}
+.god-toggle-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(198,120,255,0.1);}
+.god-toggle-row:last-child{border-bottom:none;}
+.god-toggle-label{font-size:13px;}
+.toggle{width:44px;height:24px;background:var(--border);border-radius:12px;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;}
+.toggle.on{background:var(--blue);}
+.toggle::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left 0.2s;}
+.toggle.on::after{left:23px;}
+.user-manage-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(198,120,255,0.1);}
+.user-manage-row:last-child{border-bottom:none;}
+.user-name-display{font-size:14px;font-weight:600;margin-bottom:2px;}
+.user-role-display{font-size:11px;font-family:var(--mono);color:var(--muted);}
+
+/* LOCK NOTICE */
+.lock-notice{background:rgba(255,68,68,0.06);border:1px solid rgba(255,68,68,0.15);border-radius:10px;padding:10px 14px;font-size:11px;color:var(--danger);font-family:var(--mono);display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+
+/* PROFILE */
+.profile-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px;text-align:center;}
+.profile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--accent));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;margin:0 auto 12px;}
+.profile-username{font-size:18px;font-weight:800;margin-bottom:4px;}
+.profile-role{font-size:12px;font-family:var(--mono);color:var(--muted);}
+
+/* TOAST */
+.toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 20px;font-size:13px;font-family:var(--mono);z-index:500;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;max-width:90vw;}
+.toast.show{opacity:1;}
+.toast.t-ok{border-color:rgba(0,230,118,0.4);color:var(--success);}
+.toast.t-err{border-color:rgba(255,68,68,0.4);color:var(--danger);}
+.toast.t-warn{border-color:rgba(255,170,0,0.4);color:var(--warn);}
+
+/* SECTION DIVIDER */
+.sec-label{font-size:11px;font-weight:700;color:var(--muted);margin:14px 0 8px;font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;}
+
+/* SUPPLIER CARD */
+.supplier-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;}
+.sup-name{font-size:15px;font-weight:700;margin-bottom:3px;}
+.sup-loc{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:10px;}
+.sup-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.sup-stat{background:var(--surface2);border-radius:8px;padding:10px;}
+.sup-stat-label{font-size:9px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;}
+.sup-stat-val{font-size:13px;font-weight:700;}
+
+/* GREET */
+.greet-card{background:linear-gradient(135deg,rgba(0,102,255,0.12),rgba(0,212,255,0.06));border:1px solid rgba(0,212,255,0.12);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+.greet-name{font-size:17px;font-weight:800;margin-bottom:2px;}
+.greet-sub{font-size:11px;color:var(--muted);font-family:var(--mono);}
+
+/* PRODUCTION ORDER */
+.order-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;}
+.order-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
+.order-id{font-size:11px;font-family:var(--mono);color:var(--muted);margin-bottom:3px;}
+.order-name{font-size:15px;font-weight:700;}
+.order-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+.os-item{background:var(--surface2);border-radius:8px;padding:10px;}
+.os-label{font-size:9px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.os-val{font-size:14px;font-weight:700;}
+.mat-check{background:var(--surface2);border-radius:10px;padding:12px;}
+.mat-check-title{font-size:10px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.mat-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid rgba(28,45,71,0.3);}
+.mat-row:last-child{border-bottom:none;}
+.mat-ok{color:var(--success);font-family:var(--mono);font-size:11px;}
+.mat-short{color:var(--danger);font-family:var(--mono);font-size:11px;}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-logo">FISO <span>Pumps</span></div>
+  <div class="login-tagline">ERP · Coimbatore</div>
+  <div class="login-box">
+    <div class="login-title">Sign In</div>
+    <input class="login-field" id="loginUser" placeholder="Username" autocomplete="username" autocorrect="off" autocapitalize="none" />
+    <input class="login-field" id="loginPass" type="password" placeholder="Password" autocomplete="current-password" />
+    <button class="login-btn" onclick="doLogin()">Sign In →</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none;" class="app-shell">
+  <div class="topbar">
+    <div>
+      <div class="logo-main">FISO <span>Pumps</span></div>
+      <div class="logo-sub">Inventory · Coimbatore</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="role-chip" id="roleChip">—</div>
+      <div class="logout-btn" onclick="doLogout()">⏏ LOGOUT</div>
+    </div>
+  </div>
+
+  <div class="content" id="mainContent">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="greet-card">
+        <div class="greet-name" id="greetName">Welcome 👋</div>
+        <div class="greet-sub" id="greetDate">—</div>
+      </div>
+      <div class="stat-grid" id="dashStats"></div>
+      <div id="dashAlerts"></div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Recent Activity</span></div>
+        <div id="activityFeed"></div>
+      </div>
+    </div>
+
+    <!-- STOCK (CATEGORIES) -->
+    <div class="page" id="page-stock">
+      <div class="page-tag">Inventory</div>
+      <div class="page-title">Raw Materials</div>
+      <div class="page-sub" id="stockSub">—</div>
+      <input class="field" id="stockSearch" placeholder="🔍  Search parts, categories or brands..." oninput="renderStock()" autocorrect="off" style="margin-bottom:12px;" />
+      <div id="stockCategories"></div>
+    </div>
+
+    <!-- STOCK IN / OUT (Staff) -->
+    <div class="page" id="page-movement">
+      <div class="page-tag">Store Staff</div>
+      <div class="page-title">Stock Movement</div>
+      <div class="page-sub">Log goods in and out</div>
+      <div style="margin-bottom:14px;">
+        <div class="field-label">Select Part</div>
+        <input class="field" id="mvSearch" placeholder="🔍  Type to search part..." oninput="filterMvParts()" autocorrect="off" />
+        <div id="mvPartResults" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-top:-4px;margin-bottom:10px;display:none;max-height:200px;overflow-y:auto;"></div>
+        <div id="mvSelectedPart" style="display:none;background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:10px;">
+          <div id="mvPartName" style="font-size:15px;font-weight:700;"></div>
+          <div id="mvPartStock" style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-top:3px;"></div>
+        </div>
+        <div class="field-label">Quantity</div>
+        <input class="field" id="mvQty" type="number" inputmode="numeric" placeholder="Enter quantity" min="1" />
+        <div class="field-label">Supplier (for Stock IN)</div>
+        <select class="field" id="mvSupplier">
+          <option value="">Select supplier...</option>
+          <option>RK Parts, Coimbatore</option>
+          <option>Sri Murugan Traders</option>
+          <option>Kovai Metal Works</option>
+          <option>Rajesh Hardware</option>
+          <option>Annamalai Electricals</option>
+          <option>Kumar Castings</option>
+          <option>Vel Traders</option>
+          <option>Other</option>
+        </select>
+        <input class="field" id="mvNote" placeholder="Notes (optional)" autocorrect="off" />
+      </div>
+      <button class="big-btn big-btn-green" onclick="logMovement('IN')">⬆ STOCK IN</button>
+      <button class="big-btn big-btn-red" onclick="logMovement('OUT')">⬇ STOCK OUT</button>
+      <div class="card" style="margin-top:16px;">
+        <div class="card-head"><span class="card-title">Today's Movements</span></div>
+        <div id="todayMovements"></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTION / CAPACITY -->
+    <div class="page" id="page-production">
+      <div class="page-tag">Production</div>
+      <div class="page-title">Orders & Capacity</div>
+      <div class="page-sub">What can we make?</div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-head"><span class="card-title">Production Capacity Calculator</span></div>
+        <div class="card-body">
+          <div class="field-label">Select Pump Model</div>
+          <select class="field" id="capPumpSelect" style="margin-bottom:10px;">
+            <option value="">Choose pump model...</option>
+          </select>
+          <div class="field-label">Orders planned this week (units)</div>
+          <input class="field" id="capReserved" type="number" inputmode="numeric" placeholder="e.g. 20" />
+          <button class="btn-confirm" onclick="calcCapacity()">Calculate →</button>
+        </div>
+      </div>
+      <div id="capResult"></div>
+      <div class="sec-label">Active Production Orders</div>
+      <div id="orderCards"></div>
+    </div>
+
+    <!-- BOM (Admin only) -->
+    <div class="page" id="page-bom">
+      <div class="page-tag">Admin Only</div>
+      <div class="page-title">BOM & Margins</div>
+      <div class="page-sub">Bill of Materials · Cost Analysis</div>
+      <div class="lock-notice">🔒 Admin only — costs hidden from all other roles</div>
+      <button class="btn-confirm" onclick="openNewPump()" style="margin-bottom:14px;">＋ New Pump Model</button>
+      <div id="bomCards"></div>
+    </div>
+
+    <!-- PAYMENTS (Admin only) -->
+    <div class="page" id="page-payments">
+      <div class="page-tag">Admin Only</div>
+      <div class="page-title">Payments</div>
+      <div class="page-sub">Payables & Receivables</div>
+      <div class="lock-notice">🔒 Admin only</div>
+      <div class="pay-summary" id="paySummary"></div>
+      <div class="sec-label">💸 We Owe Suppliers</div>
+      <div id="supplierPayables"></div>
+      <div class="sec-label">💰 Distributors Owe Us</div>
+      <div id="distributorReceivables"></div>
+    </div>
+
+    <!-- AI CHATBOT -->
+    <div class="page" id="page-chat">
+      <div class="page-tag">AI Assistant</div>
+      <div class="page-title">Ask FISO AI</div>
+      <div class="page-sub">Ask anything about your inventory</div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-bubble bot">
+          <div class="bubble-text">Hi! I'm your FISO Pumps assistant. Ask me anything — stock levels, production capacity, payments, who made entries, and more! 💪</div>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chatInput" placeholder="Ask anything..." autocorrect="off" />
+        <button class="chat-send" onclick="sendChat()">➤</button>
+      </div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="page-profile">
+      <div class="page-tag">My Account</div>
+      <div class="page-title">Profile</div>
+      <div class="page-sub">Manage your account</div>
+      <div class="profile-card">
+        <div class="profile-avatar" id="profileAvatar">—</div>
+        <div class="profile-username" id="profileUsername">—</div>
+        <div class="profile-role" id="profileRole">—</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Change Username</span></div>
+        <div class="card-body">
+          <input class="field" id="newUsername" placeholder="New username" autocorrect="off" autocapitalize="none" />
+          <button class="btn-confirm" onclick="changeUsername()">Update Username</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-title">Change Password</span></div>
+        <div class="card-body">
+          <input class="field" type="password" id="oldPass" placeholder="Current password" />
+          <input class="field" type="password" id="newPass" placeholder="New password" />
+          <button class="btn-confirm" onclick="changePassword()">Update Password</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GOD MODE (X only) -->
+    <div class="page" id="page-god">
+      <div class="page-tag" style="color:#c678ff;">⚡ GOD MODE</div>
+      <div class="page-title">System Control</div>
+      <div class="page-sub">Full control — X only</div>
+
+      <div class="god-section">
+        <div class="god-section-title">👥 User Management</div>
+        <div id="godUserList"></div>
+        <button class="btn-confirm" style="margin-top:10px;" onclick="openAddUser()">＋ Add New User</button>
+      </div>
+
+      <div class="god-section">
+        <div class="god-section-title">🎛 Feature Permissions</div>
+        <div id="godPermissions"></div>
+      </div>
+
+      <div class="god-section">
+        <div class="god-section-title">🎨 UI Settings</div>
+        <div class="field-label">App Name</div>
+        <input class="field" id="godAppName" value="FISO Pumps" autocorrect="off" />
+        <div class="field-label">Accent Color</div>
+        <div style="display:flex;gap:10px;margin-bottom:10px;">
+          <div onclick="setAccent('#00d4ff')" style="width:36px;height:36px;border-radius:50%;background:#00d4ff;cursor:pointer;border:2px solid #fff;"></div>
+          <div onclick="setAccent('#00e676')" style="width:36px;height:36px;border-radius:50%;background:#00e676;cursor:pointer;"></div>
+          <div onclick="setAccent('#ffaa00')" style="width:36px;height:36px;border-radius:50%;background:#ffaa00;cursor:pointer;"></div>
+          <div onclick="setAccent('#ff4444')" style="width:36px;height:36px;border-radius:50%;background:#ff4444;cursor:pointer;"></div>
+          <div onclick="setAccent('#c678ff')" style="width:36px;height:36px;border-radius:50%;background:#c678ff;cursor:pointer;"></div>
+        </div>
+        <button class="btn-confirm" onclick="applyGodSettings()">Apply UI Changes</button>
+      </div>
+
+      <div class="god-section">
+        <div class="god-section-title">📦 Component Menus</div>
+        <div id="godCategoryList"></div>
+        <button class="btn-confirm" style="margin-top:10px;" onclick="openAddCategory()">＋ Add New Category</button>
+      </div>
+
+      <div class="god-section">
+        <div class="god-section-title">🗄 Data Control</div>
+        <button class="btn-confirm" onclick="exportAllData()" style="margin-bottom:10px;">📥 Export All Data</button>
+        <button class="btn-danger" onclick="confirmReset()">⚠️ Reset All Data</button>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+
+  <div class="bottom-nav" id="bottomNav"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════
+const DEFAULT_USERS = [
+  {id:'u1', username:'user1', password:'FISO@user1', role:'staff', name:'User 1'},
+  {id:'u2', username:'user2', password:'FISO@user2', role:'staff', name:'User 2'},
+  {id:'u3', username:'user3', password:'FISO@mgr22', role:'manager', name:'User 3'},
+  {id:'u4', username:'user4', password:'FISO@user4', role:'manager', name:'User 4'},
+  {id:'u5', username:'user5', password:'FISO@user5', role:'manager', name:'User 5'},
+  {id:'u6', username:'user6', password:'FISO@own999', role:'admin', name:'User 6'},
+  {id:'ux', username:'x', password:'X@fiso2026', role:'x', name:'Super Admin'},
+];
+
+const ROLE_LABELS = {staff:'Store Staff', manager:'Manager', admin:'Admin', x:'⚡ God Mode'};
+const ROLE_CLASSES = {staff:'rc-staff', manager:'rc-manager', admin:'rc-admin', x:'rc-x'};
+
+const DEFAULT_CATEGORIES = [
+  'Bearings','Motors','Seals','Impellers','Casings','Fasteners','Capacitors','Cables','Valves','Pipes','Gaskets','Shafts','Paint & Packaging'
+];
+
+const DEFAULT_MATERIALS = [
+  {id:'m1',name:'Impeller 3"',cat:'Impellers',brands:['Big Flow 1HP','Centrifugal 1HP','Monoblock 1HP'],price:340,stock:12,minStock:50,unit:'pcs'},
+  {id:'m2',name:'Impeller 2"',cat:'Impellers',brands:['Booster 0.5HP','Mini Pump'],price:210,stock:45,minStock:30,unit:'pcs'},
+  {id:'m3',name:'Motor 1HP',cat:'Motors',brands:['Big Flow 1HP','Monoblock 1HP'],price:2100,stock:87,minStock:20,unit:'pcs'},
+  {id:'m4',name:'Motor 0.5HP',cat:'Motors',brands:['Booster 0.5HP'],price:1400,stock:34,minStock:20,unit:'pcs'},
+  {id:'m5',name:'Motor 2HP',cat:'Motors',brands:['Industrial 2HP'],price:3800,stock:18,minStock:10,unit:'pcs'},
+  {id:'m6',name:'Mechanical Seal Type B',cat:'Seals',brands:['Submersible 2HP'],price:780,stock:0,minStock:30,unit:'pcs'},
+  {id:'m7',name:'Mechanical Seal Type A',cat:'Seals',brands:['Big Flow 1HP','Submersible 1HP'],price:560,stock:42,minStock:25,unit:'pcs'},
+  {id:'m8',name:'Bearing 6205',cat:'Bearings',brands:['Big Flow 1HP','Centrifugal 1HP','Industrial 2HP','Monoblock 1HP'],price:95,stock:204,minStock:50,unit:'pcs'},
+  {id:'m9',name:'Bearing 6204',cat:'Bearings',brands:['Monoblock 1HP','Booster 0.5HP'],price:85,stock:96,minStock:50,unit:'pcs'},
+  {id:'m10',name:'Pump Casing Cast Iron',cat:'Casings',brands:['Big Flow 1HP','Centrifugal 1HP'],price:1450,stock:18,minStock:25,unit:'pcs'},
+  {id:'m11',name:'Pump Casing SS',cat:'Casings',brands:['Chemical Pump'],price:2800,stock:8,minStock:10,unit:'pcs'},
+  {id:'m12',name:'Shaft Seal',cat:'Seals',brands:['Big Flow 1HP','Submersible 2HP'],price:480,stock:63,minStock:20,unit:'pcs'},
+  {id:'m13',name:'Submersible Motor 2HP',cat:'Motors',brands:['Submersible 2HP'],price:4200,stock:22,minStock:10,unit:'pcs'},
+  {id:'m14',name:'Submersible Motor 1HP',cat:'Motors',brands:['Submersible 1HP'],price:2900,stock:14,minStock:10,unit:'pcs'},
+  {id:'m15',name:'Cable Assembly 3-Core',cat:'Cables',brands:['Submersible 2HP','Submersible 1HP'],price:690,stock:8,minStock:20,unit:'pcs'},
+  {id:'m16',name:'Capacitor 25μF',cat:'Capacitors',brands:['Monoblock 1HP','Booster 0.5HP'],price:120,stock:155,minStock:50,unit:'pcs'},
+  {id:'m17',name:'Capacitor 35μF',cat:'Capacitors',brands:['Big Flow 1HP','Centrifugal 1HP'],price:145,stock:88,minStock:50,unit:'pcs'},
+  {id:'m18',name:'Nut M10',cat:'Fasteners',brands:['Common — All Models'],price:3,stock:2400,minStock:500,unit:'pcs'},
+  {id:'m19',name:'Bolt M12×40',cat:'Fasteners',brands:['Common — All Models'],price:5,stock:1800,minStock:400,unit:'pcs'},
+  {id:'m20',name:'Bolt M10×30',cat:'Fasteners',brands:['Common — All Models'],price:4,stock:2100,minStock:400,unit:'pcs'},
+  {id:'m21',name:'O-Ring 25mm',cat:'Gaskets',brands:['Common — All Models'],price:18,stock:320,minStock:100,unit:'pcs'},
+  {id:'m22',name:'O-Ring 32mm',cat:'Gaskets',brands:['Big Flow 1HP','Industrial 2HP'],price:22,stock:180,minStock:80,unit:'pcs'},
+  {id:'m23',name:'Gasket Set Standard',cat:'Gaskets',brands:['Common — All Models'],price:85,stock:95,minStock:40,unit:'sets'},
+  {id:'m24',name:'Gasket Set Heavy',cat:'Gaskets',brands:['Industrial 2HP'],price:140,stock:28,minStock:20,unit:'sets'},
+  {id:'m25',name:'Pressure Tank 1L',cat:'Valves',brands:['Booster 0.5HP'],price:580,stock:30,minStock:15,unit:'pcs'},
+  {id:'m26',name:'Foot Valve 1"',cat:'Valves',brands:['Big Flow 1HP','Submersible 1HP'],price:220,stock:55,minStock:20,unit:'pcs'},
+  {id:'m27',name:'Foot Valve 1.5"',cat:'Valves',brands:['Industrial 2HP'],price:340,stock:22,minStock:15,unit:'pcs'},
+  {id:'m28',name:'Monoblock Casing',cat:'Casings',brands:['Monoblock 1HP'],price:1800,stock:40,minStock:20,unit:'pcs'},
+  {id:'m29',name:'Diffuser Plate',cat:'Casings',brands:['Submersible 2HP','Submersible 1HP'],price:450,stock:35,minStock:20,unit:'pcs'},
+  {id:'m30',name:'Shaft 12mm',cat:'Shafts',brands:['Big Flow 1HP','Monoblock 1HP'],price:280,stock:50,minStock:25,unit:'pcs'},
+  {id:'m31',name:'Shaft 16mm',cat:'Shafts',brands:['Industrial 2HP'],price:420,stock:18,minStock:15,unit:'pcs'},
+  {id:'m32',name:'Wiring Harness',cat:'Cables',brands:['Monoblock 1HP','Booster 0.5HP'],price:350,stock:60,minStock:25,unit:'pcs'},
+  {id:'m33',name:'Control Box 1HP',cat:'Cables',brands:['Submersible 1HP'],price:890,stock:14,minStock:10,unit:'pcs'},
+  {id:'m34',name:'Control Box 2HP',cat:'Cables',brands:['Submersible 2HP'],price:1200,stock:9,minStock:8,unit:'pcs'},
+  {id:'m35',name:'Paint Blue 1L',cat:'Paint & Packaging',brands:['Common — All Models'],price:180,stock:22,minStock:10,unit:'cans'},
+  {id:'m36',name:'Packing Foam',cat:'Paint & Packaging',brands:['Common — All Models'],price:45,stock:200,minStock:80,unit:'pcs'},
+  {id:'m37',name:'Product Label Sheet',cat:'Paint & Packaging',brands:['Common — All Models'],price:12,stock:500,minStock:200,unit:'pcs'},
+  {id:'m38',name:'Suction Pipe 1"',cat:'Pipes',brands:['Big Flow 1HP','Centrifugal 1HP'],price:95,stock:80,minStock:40,unit:'mtrs'},
+  {id:'m39',name:'Delivery Pipe 1"',cat:'Pipes',brands:['Big Flow 1HP','Centrifugal 1HP'],price:95,stock:75,minStock:40,unit:'mtrs'},
+  {id:'m40',name:'Check Valve 1"',cat:'Valves',brands:['Booster 0.5HP','Submersible 1HP'],price:310,stock:38,minStock:20,unit:'pcs'},
+];
+
+const DEFAULT_PUMPS = [
+  {id:'p1',name:'Big Flow 1HP',icon:'⚙️',sellPrice:7800,materials:[{matId:'m1',qty:1},{matId:'m3',qty:1},{matId:'m10',qty:1},{matId:'m8',qty:2},{matId:'m7',qty:1},{matId:'m17',qty:1},{matId:'m30',qty:1},{matId:'m23',qty:1},{matId:'m18',qty:8},{matId:'m19',qty:4}]},
+  {id:'p2',name:'Submersible 2HP',icon:'🌊',sellPrice:12700,materials:[{matId:'m13',qty:1},{matId:'m6',qty:2},{matId:'m29',qty:1},{matId:'m15',qty:1},{matId:'m34',qty:1},{matId:'m21',qty:4},{matId:'m23',qty:1}]},
+  {id:'p3',name:'Monoblock 1HP',icon:'🔵',sellPrice:8500,materials:[{matId:'m3',qty:1},{matId:'m1',qty:1},{matId:'m28',qty:1},{matId:'m9',qty:2},{matId:'m16',qty:1},{matId:'m32',qty:1},{matId:'m23',qty:1},{matId:'m18',qty:6}]},
+  {id:'p4',name:'Booster 0.5HP',icon:'💨',sellPrice:4900,materials:[{matId:'m4',qty:1},{matId:'m2',qty:1},{matId:'m25',qty:1},{matId:'m9',qty:2},{matId:'m16',qty:1},{matId:'m40',qty:1},{matId:'m21',qty:2},{matId:'m23',qty:1}]},
+  {id:'p5',name:'Submersible 1HP',icon:'🔶',sellPrice:9200,materials:[{matId:'m14',qty:1},{matId:'m7',qty:2},{matId:'m29',qty:1},{matId:'m15',qty:1},{matId:'m33',qty:1},{matId:'m21',qty:4},{matId:'m23',qty:1}]},
+  {id:'p6',name:'Industrial 2HP',icon:'🏭',sellPrice:18500,materials:[{matId:'m5',qty:1},{matId:'m11',qty:1},{matId:'m31',qty:1},{matId:'m27',qty:1},{matId:'m8',qty:2},{matId:'m7',qty:1},{matId:'m22',qty:4},{matId:'m24',qty:1},{matId:'m20',qty:8}]},
+];
+
+const DEFAULT_ORDERS = [
+  {id:'PO-089',pumpId:'p1',qty:50,status:'IN PROGRESS',due:'20 Mar 2026'},
+  {id:'PO-088',pumpId:'p2',qty:15,status:'MATERIAL SHORT',due:'18 Mar 2026'},
+  {id:'PO-090',pumpId:'p3',qty:30,status:'READY',due:'25 Mar 2026'},
+];
+
+const DEFAULT_PAYABLES = [
+  {id:'sp1',name:'RK Parts',detail:'Bearings & Hardware · PO-081',amount:23400,dueDate:'2026-03-01',paid:false,type:'payable'},
+  {id:'sp2',name:'Kovai Metal Works',detail:'Motors & Casings · PO-079',amount:46000,dueDate:'2026-03-10',paid:false,type:'payable'},
+  {id:'sp3',name:'Sri Murugan Traders',detail:'Seals & Gaskets · PO-083',amount:12800,dueDate:'2026-03-15',paid:false,type:'payable'},
+];
+
+const DEFAULT_RECEIVABLES = [
+  {id:'dr1',name:'Ajay Pumps Co.',detail:'20× Big Flow 1HP · INV-201',amount:156000,dueDate:'2026-02-26',paid:false,type:'receivable'},
+  {id:'dr2',name:'Delhi Water Works',detail:'15× Submersible 2HP · INV-202',amount:94000,dueDate:'2026-03-14',paid:false,type:'receivable'},
+  {id:'dr3',name:'Sharma Irrigations',detail:'30× Monoblock 1HP · INV-203',amount:255000,dueDate:'2026-03-18',paid:false,type:'receivable'},
+];
+
+const DEFAULT_ACTIVITY = [
+  {name:'Bearing 6205 received',detail:'user1 · RK Parts',qty:'+200',type:'plus',time:'09:14 AM · 6 Mar 2026'},
+  {name:'Big Flow 1HP shipped',detail:'user2 · Ajay Pumps Co.',qty:'−20',type:'minus',time:'08:50 AM · 6 Mar 2026'},
+  {name:'Motor 1HP received',detail:'user1 · Kovai Metal',qty:'+50',type:'plus',time:'08:30 AM · 6 Mar 2026'},
+  {name:'Shaft Seal received',detail:'user2 · Sri Murugan',qty:'+30',type:'plus',time:'08:20 AM · 6 Mar 2026'},
+];
+
+const DEFAULT_PERMISSIONS = {
+  staff:{movement:true,stock:true,production:false,bom:false,payments:false,chat:false},
+  manager:{movement:false,stock:true,production:true,bom:false,payments:false,chat:true},
+  admin:{movement:true,stock:true,production:true,bom:true,payments:true,chat:true},
+};
+
+// LOAD FROM STORAGE
+let users = JSON.parse(localStorage.getItem('fiso_users')||'null')||DEFAULT_USERS;
+let materials = JSON.parse(localStorage.getItem('fiso_materials')||'null')||DEFAULT_MATERIALS;
+let pumps = JSON.parse(localStorage.getItem('fiso_pumps')||'null')||DEFAULT_PUMPS;
+let orders = JSON.parse(localStorage.getItem('fiso_orders')||'null')||DEFAULT_ORDERS;
+let payables = JSON.parse(localStorage.getItem('fiso_payables')||'null')||DEFAULT_PAYABLES;
+let receivables = JSON.parse(localStorage.getItem('fiso_receivables')||'null')||DEFAULT_RECEIVABLES;
+let activity = JSON.parse(localStorage.getItem('fiso_activity')||'null')||DEFAULT_ACTIVITY;
+let permissions = JSON.parse(localStorage.getItem('fiso_permissions')||'null')||DEFAULT_PERMISSIONS;
+let categories = JSON.parse(localStorage.getItem('fiso_categories')||'null')||DEFAULT_CATEGORIES;
+
+function save(){
+  localStorage.setItem('fiso_users',JSON.stringify(users));
+  localStorage.setItem('fiso_materials',JSON.stringify(materials));
+  localStorage.setItem('fiso_pumps',JSON.stringify(pumps));
+  localStorage.setItem('fiso_orders',JSON.stringify(orders));
+  localStorage.setItem('fiso_payables',JSON.stringify(payables));
+  localStorage.setItem('fiso_receivables',JSON.stringify(receivables));
+  localStorage.setItem('fiso_activity',JSON.stringify(activity));
+  localStorage.setItem('fiso_permissions',JSON.stringify(permissions));
+  localStorage.setItem('fiso_categories',JSON.stringify(categories));
+}
+
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+let currentUser = null;
+
+function doLogin(){
+  const uname = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const user = users.find(u=>u.username===uname && u.password===pass);
+  if(!user){document.getElementById('loginErr').textContent='Wrong username or password.';return;}
+  currentUser = user;
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainApp').style.display='flex';
+  setupRole();
+  initApp();
+}
+
+function doLogout(){
+  currentUser=null;
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  document.getElementById('loginErr').textContent='';
+}
+
+document.getElementById('loginPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+function setupRole(){
+  const chip = document.getElementById('roleChip');
+  chip.textContent = currentUser.role==='x'?'⚡ God Mode':ROLE_LABELS[currentUser.role]||currentUser.role;
+  chip.className='role-chip '+(ROLE_CLASSES[currentUser.role]||'rc-staff');
+  buildNav();
+}
+
+// ═══════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════
+const NAV_CONFIG = {
+  dashboard:{icon:'◈',label:'Home',roles:['staff','manager','admin','x']},
+  stock:{icon:'⬡',label:'Stock',roles:['staff','manager','admin','x']},
+  movement:{icon:'＋',label:'Move',roles:['staff','admin','x']},
+  production:{icon:'◻',label:'Orders',roles:['manager','admin','x']},
+  bom:{icon:'▦',label:'BOM',roles:['admin','x']},
+  payments:{icon:'₹',label:'Pay',roles:['admin','x']},
+  chat:{icon:'💬',label:'AI',roles:['manager','admin','x']},
+  profile:{icon:'👤',label:'Me',roles:['staff','manager','admin','x']},
+  god:{icon:'⚡',label:'God',roles:['x']},
+};
+
+function buildNav(){
+  const role = currentUser.role;
+  const nav = document.getElementById('bottomNav');
+  nav.innerHTML='';
+  Object.entries(NAV_CONFIG).forEach(([key,cfg])=>{
+    if(!cfg.roles.includes(role)) return;
+    // check permissions
+    if(role!=='x'&&role!=='admin'&&permissions[role]&&permissions[role][key]===false) return;
+    const el = document.createElement('div');
+    el.className='bnav-item'+(key==='dashboard'?' active':'');
+    el.id='nav-'+key;
+    el.innerHTML=`<div class="bnav-icon">${cfg.icon}</div>${cfg.label}`;
+    el.onclick=()=>switchPage(key);
+    nav.appendChild(el);
+  });
+}
+
+function switchPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(n=>n.classList.remove('active'));
+  const pg = document.getElementById('page-'+name);
+  const nv = document.getElementById('nav-'+name);
+  if(pg) pg.classList.add('active');
+  if(nv) nv.classList.add('active');
+  document.getElementById('mainContent').scrollTop=0;
+  if(name==='stock') renderStock();
+  if(name==='bom') renderBOM();
+  if(name==='payments') renderPayments();
+  if(name==='production'){renderOrders();populateCapSelect();}
+  if(name==='god') renderGodMode();
+  if(name==='profile') renderProfile();
+  if(name==='movement') renderMovement();
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+function initApp(){
+  const now=new Date();
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('greetDate').textContent=`${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} · 📍 FISO Pumps`;
+  const h=now.getHours();
+  document.getElementById('greetName').textContent=`${h<12?'Good morning':h<17?'Good afternoon':'Good evening'}, ${currentUser.name} 👋`;
+  renderDashboard();
+}
+
+function getTime(){
+  const now=new Date();
+  let h=now.getHours(),m=now.getMinutes();
+  const ap=h>=12?'PM':'AM';h=h%12||12;
+  const d=now.getDate(),mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()];
+  return `${h}:${String(m).padStart(2,'0')} ${ap} · ${d} ${mo} ${now.getFullYear()}`;
+}
+
+// ═══════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════
+function renderDashboard(){
+  const total=materials.length;
+  const low=materials.filter(m=>m.stock>0&&m.stock<m.minStock).length;
+  const crit=materials.filter(m=>m.stock===0).length;
+  const totalStock=materials.reduce((a,m)=>a+m.stock,0);
+  document.getElementById('dashStats').innerHTML=`
+    <div class="stat-card sc-blue"><div class="stat-label">Materials</div><div class="stat-val sv-blue">${total}</div><div class="stat-hint">SKUs tracked</div></div>
+    <div class="stat-card sc-green"><div class="stat-label">Total Stock</div><div class="stat-val sv-green">${totalStock}</div><div class="stat-hint">units in store</div></div>
+    <div class="stat-card sc-warn"><div class="stat-label">Low Stock</div><div class="stat-val sv-warn">${low}</div><div class="stat-hint">need ordering</div></div>
+    <div class="stat-card sc-red"><div class="stat-label">Critical</div><div class="stat-val sv-red">${crit}</div><div class="stat-hint">out of stock</div></div>`;
+  const alerts=materials.filter(m=>m.stock<m.minStock).sort((a,b)=>a.stock-b.stock).slice(0,4);
+  document.getElementById('dashAlerts').innerHTML=alerts.map(m=>{
+    const ic=m.stock===0;
+    return `<div class="alert ${ic?'alert-red':'alert-warn'}"><span style="font-size:16px;">${ic?'🔴':'⚠️'}</span><span><strong>${ic?'Critical':'Low Stock'}:</strong> ${m.name} — ${m.stock===0?'OUT OF STOCK':`only ${m.stock} left (min: ${m.minStock})`}</span></div>`;
+  }).join('');
+  document.getElementById('activityFeed').innerHTML=activity.slice(0,6).map(a=>`
+    <div class="act-row">
+      <div><div class="act-name">${a.name}</div><div class="act-meta">${a.detail} · ${a.time}</div></div>
+      <div class="act-qty ${a.type==='plus'?'act-plus':'act-minus'}">${a.qty}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// STOCK (CATEGORIES)
+// ═══════════════════════════════════════════════
+function renderStock(){
+  const q=(document.getElementById('stockSearch')?.value||'').toLowerCase();
+  document.getElementById('stockSub').textContent=`FISO Pumps · ${materials.length} SKUs · ${categories.length} categories`;
+  const canEdit=currentUser.role==='admin'||currentUser.role==='x'||currentUser.role==='staff';
+  const showPrice=currentUser.role==='admin'||currentUser.role==='x';
+  let html='';
+  const usedCats = q
+    ? ['Search Results']
+    : [...new Set([...categories,...materials.map(m=>m.cat)])].filter(c=>materials.some(m=>m.cat===c));
+  usedCats.forEach(cat=>{
+    let list = q
+      ? materials.filter(m=>m.name.toLowerCase().includes(q)||m.cat.toLowerCase().includes(q)||(m.brands&&m.brands.some(b=>b.toLowerCase().includes(q))))
+      : materials.filter(m=>m.cat===cat);
+    if(!list.length) return;
+    html+=`<div class="cat-section">
+      <div class="cat-header" onclick="toggleCat('cat_${cat.replace(/\s/g,'_')}')">
+        <div><div class="cat-name">${cat}</div><div class="cat-count">${list.length} items</div></div>
+        <span class="cat-arrow" id="arr_cat_${cat.replace(/\s/g,'_')}">▼</span>
+      </div>
+      <div class="cat-body ${q?'open':''}" id="cat_${cat.replace(/\s/g,'_')}">
+        ${list.map(m=>{
+          const s=stockStatus(m);
+          return `<div class="part-row">
+            <div style="flex:1;min-width:0;">
+              <div class="part-name">${m.name}</div>
+              <div class="part-meta">${(m.brands||[]).join(' · ')}</div>
+              <div class="stock-bar"><div class="stock-fill ${s.cls}" style="width:${s.pct}%"></div></div>
+              <span class="badge ${s.badge}">${s.label}</span>
+            </div>
+            <div class="part-right" style="min-width:90px;">
+              <div class="part-stock-num ${s.cls==='sf-crit'?'sv-red':s.cls==='sf-low'?'sv-warn':'sv-green'}">${m.stock}</div>
+              <div class="part-meta">${m.unit}</div>
+              ${showPrice?`<div class="part-meta" style="color:var(--accent);">₹${m.price}</div>`:''}
+              <div class="part-actions">
+                <button class="btn-sm btn-add" onclick="openPartDetail('${m.id}')">Info</button>
+                ${canEdit?`<button class="btn-sm btn-edit" onclick="editMaterial('${m.id}')">Edit</button>`:''}
+                ${currentUser.role==='admin'||currentUser.role==='x'?`<button class="btn-sm btn-del" onclick="deleteMaterial('${m.id}')">Del</button>`:''}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+        ${currentUser.role==='admin'||currentUser.role==='x'?`<div style="padding:12px 16px;"><button class="btn-sm btn-add" onclick="openAddMaterial('${cat}')">＋ Add to ${cat}</button></div>`:''}
+      </div>
+    </div>`;
+  });
+  if(currentUser.role==='admin'||currentUser.role==='x'){
+    html+=`<button class="btn-confirm" onclick="openAddMaterial('')" style="margin-top:4px;">＋ Add New Material</button>`;
+  }
+  document.getElementById('stockCategories').innerHTML=html||'<div style="text-align:center;color:var(--muted);padding:30px;font-family:var(--mono);font-size:13px;">No results found</div>';
+}
+
+function toggleCat(id){
+  const body=document.getElementById(id);
+  const arr=document.getElementById('arr_'+id);
+  if(!body) return;
+  body.classList.toggle('open');
+  if(arr) arr.classList.toggle('open');
+}
+
+function stockStatus(m){
+  if(m.stock===0) return{cls:'sf-crit',badge:'b-crit',label:'CRITICAL',pct:0};
+  if(m.stock<m.minStock) return{cls:'sf-low',badge:'b-low',label:'LOW',pct:Math.round(m.stock/m.minStock*100)};
+  return{cls:'sf-ok',badge:'b-ok',label:'OK',pct:Math.min(100,Math.round(m.stock/(m.minStock*2)*100))};
+}
+
+function openPartDetail(id){
+  const m=materials.find(x=>x.id===id);
+  if(!m) return;
+  const usedIn=pumps.filter(p=>p.materials.some(bm=>bm.matId===id));
+  const showPrice=currentUser.role==='admin'||currentUser.role==='x';
+  openModal(`
+    <div class="modal-title">${m.name}</div>
+    <div class="modal-sub">${m.cat} · ${m.stock} ${m.unit} in stock</div>
+    <div style="background:var(--surface2);border-radius:12px;padding:14px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;"><span style="color:var(--muted);">Category</span><span>${m.cat}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;"><span style="color:var(--muted);">Stock</span><span style="font-weight:700;">${m.stock} ${m.unit}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;"><span style="color:var(--muted);">Min Stock</span><span>${m.minStock} ${m.unit}</span></div>
+      ${showPrice?`<div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--muted);">Unit Price</span><span style="color:var(--accent);">₹${m.price}</span></div>`:''}
+    </div>
+    <div class="sec-label">Used In Pump Models</div>
+    ${usedIn.length?usedIn.map(p=>{
+      const bm=p.materials.find(x=>x.matId===id);
+      return `<div class="used-in-row"><span class="used-in-pump">${p.icon} ${p.name}</span><span class="used-in-qty">${bm?.qty||1} ${m.unit} each</span></div>`;
+    }).join(''):'<div style="color:var(--muted);font-size:12px;font-family:var(--mono);">Not used in any pump model yet</div>'}
+    <div class="sec-label" style="margin-top:14px;">Brands / Models</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;">${(m.brands||[]).map(b=>`<span class="badge b-blue">${b}</span>`).join('')}</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Close</button>
+      <button class="modal-confirm" onclick="closeModal();openAddMaterial('',true,'${id}')">Quick Add Stock</button>
+    </div>`);
+}
+
+function openAddMaterial(defaultCat,quickAdd,existingId){
+  if(quickAdd&&existingId){
+    const m=materials.find(x=>x.id===existingId);
+    openModal(`
+      <div class="modal-title">Quick Add Stock</div>
+      <div class="modal-sub">${m.name} · Current: ${m.stock} ${m.unit}</div>
+      <input class="field" id="qaQty" type="number" inputmode="numeric" placeholder="Quantity to add" autofocus />
+      <input class="field" id="qaNote" placeholder="Notes (optional)" autocorrect="off" />
+      <div class="modal-actions">
+        <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-confirm" onclick="confirmQuickAdd('${existingId}')">Add Stock</button>
+      </div>`);
+    return;
+  }
+  openModal(`
+    <div class="modal-title">Add New Material</div>
+    <div class="modal-sub">FISO Pumps Raw Material</div>
+    <div class="field-label">Part Name *</div>
+    <input class="field" id="mName" placeholder="e.g. Bearing 6206" autocorrect="off" />
+    <div class="field-label">Category</div>
+    <select class="field" id="mCat">
+      ${categories.map(c=>`<option value="${c}" ${c===defaultCat?'selected':''}>${c}</option>`).join('')}
+    </select>
+    <div class="field-label">Brands / Pump Models used in</div>
+    <input class="field" id="mBrands" placeholder="e.g. Big Flow 1HP, Common — All Models" autocorrect="off" />
+    <div class="field-row" style="margin-bottom:10px;">
+      <div style="flex:1;"><div class="field-label">Price ₹</div><input class="field" id="mPrice" type="number" inputmode="numeric" placeholder="0" /></div>
+      <div style="flex:1;"><div class="field-label">Unit</div><input class="field" id="mUnit" value="pcs" autocorrect="off" /></div>
+    </div>
+    <div class="field-row" style="margin-bottom:10px;">
+      <div style="flex:1;"><div class="field-label">Current Stock</div><input class="field" id="mStock" type="number" inputmode="numeric" placeholder="0" /></div>
+      <div style="flex:1;"><div class="field-label">Min Stock</div><input class="field" id="mMin" type="number" inputmode="numeric" placeholder="10" /></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmAddMaterial()">Add Item</button>
+    </div>`);
+}
+
+function confirmAddMaterial(){
+  const name=document.getElementById('mName').value.trim();
+  if(!name){showToast('Enter a part name','err');return;}
+  const brands=document.getElementById('mBrands').value.split(',').map(b=>b.trim()).filter(Boolean);
+  const m={
+    id:'m'+Date.now(),name,
+    cat:document.getElementById('mCat').value||'General',
+    brands:brands.length?brands:['General'],
+    price:parseFloat(document.getElementById('mPrice').value)||0,
+    unit:document.getElementById('mUnit').value||'pcs',
+    stock:parseInt(document.getElementById('mStock').value)||0,
+    minStock:parseInt(document.getElementById('mMin').value)||10
+  };
+  materials.push(m);
+  logActivity(`${m.name} added to inventory`,`${currentUser.name}`,`+${m.stock}`,'plus');
+  save();closeModal();renderStock();renderDashboard();
+  showToast('✓ '+m.name+' added','ok');
+}
+
+function confirmQuickAdd(id){
+  const qty=parseInt(document.getElementById('qaQty').value)||0;
+  if(qty<=0){showToast('Enter valid quantity','err');return;}
+  const m=materials.find(x=>x.id===id);
+  m.stock+=qty;
+  const note=document.getElementById('qaNote').value||'';
+  logActivity(`${m.name} stock added`,`${currentUser.name} · ${note||'Quick add'}`,`+${qty}`,'plus');
+  save();closeModal();renderStock();renderDashboard();
+  showToast(`+${qty} added to ${m.name}`,'ok');
+}
+
+function editMaterial(id){
+  const m=materials.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-title">Edit Material</div>
+    <div class="modal-sub">${m.name}</div>
+    <div class="field-label">Part Name</div>
+    <input class="field" id="eName" value="${m.name}" autocorrect="off" />
+    <div class="field-label">Category</div>
+    <select class="field" id="eCat">
+      ${categories.map(c=>`<option value="${c}" ${c===m.cat?'selected':''}>${c}</option>`).join('')}
+    </select>
+    <div class="field-label">Brands (comma separated)</div>
+    <input class="field" id="eBrands" value="${(m.brands||[]).join(', ')}" autocorrect="off" />
+    <div class="field-row" style="margin-bottom:10px;">
+      <div style="flex:1;"><div class="field-label">Price ₹</div><input class="field" id="ePrice" type="number" inputmode="numeric" value="${m.price}" /></div>
+      <div style="flex:1;"><div class="field-label">Unit</div><input class="field" id="eUnit" value="${m.unit}" autocorrect="off" /></div>
+    </div>
+    <div class="field-row" style="margin-bottom:10px;">
+      <div style="flex:1;"><div class="field-label">Stock</div><input class="field" id="eStock" type="number" inputmode="numeric" value="${m.stock}" /></div>
+      <div style="flex:1;"><div class="field-label">Min Stock</div><input class="field" id="eMin" type="number" inputmode="numeric" value="${m.minStock}" /></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmEdit('${id}')">Save</button>
+    </div>`);
+}
+
+function confirmEdit(id){
+  const m=materials.find(x=>x.id===id);
+  m.name=document.getElementById('eName').value||m.name;
+  m.cat=document.getElementById('eCat').value||m.cat;
+  m.brands=document.getElementById('eBrands').value.split(',').map(b=>b.trim()).filter(Boolean);
+  m.price=parseFloat(document.getElementById('ePrice').value)||m.price;
+  m.unit=document.getElementById('eUnit').value||m.unit;
+  m.stock=parseInt(document.getElementById('eStock').value)||0;
+  m.minStock=parseInt(document.getElementById('eMin').value)||m.minStock;
+  save();closeModal();renderStock();renderDashboard();renderBOM();
+  showToast('✓ Updated','ok');
+}
+
+function deleteMaterial(id){
+  const m=materials.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-title">Delete Item?</div>
+    <div class="modal-sub">This cannot be undone</div>
+    <div style="background:var(--surface2);border-radius:12px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:15px;font-weight:700;">${m.name}</div>
+      <div style="font-size:12px;color:var(--muted);font-family:var(--mono);">${m.cat} · ${m.stock} ${m.unit}</div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-danger-btn" onclick="confirmDelete('${id}')">Delete</button>
+    </div>`);
+}
+
+function confirmDelete(id){
+  materials=materials.filter(x=>x.id!==id);
+  save();closeModal();renderStock();renderDashboard();
+  showToast('Item deleted','warn');
+}
+
+// ═══════════════════════════════════════════════
+// MOVEMENT
+// ═══════════════════════════════════════════════
+let selectedMvPart=null;
+function renderMovement(){
+  selectedMvPart=null;
+  document.getElementById('mvSearch').value='';
+  document.getElementById('mvPartResults').style.display='none';
+  document.getElementById('mvSelectedPart').style.display='none';
+  document.getElementById('mvQty').value='';
+  document.getElementById('mvNote').value='';
+  renderTodayMoves();
+}
+
+function filterMvParts(){
+  const q=document.getElementById('mvSearch').value.toLowerCase();
+  const res=document.getElementById('mvPartResults');
+  if(!q){res.style.display='none';return;}
+  const matches=materials.filter(m=>m.name.toLowerCase().includes(q)||(m.brands&&m.brands.some(b=>b.toLowerCase().includes(q)))).slice(0,6);
+  if(!matches.length){res.style.display='none';return;}
+  res.style.display='block';
+  res.innerHTML=matches.map(m=>`
+    <div onclick="selectMvPart('${m.id}')" style="padding:12px 16px;border-bottom:1px solid rgba(28,45,71,0.4);cursor:pointer;">
+      <div style="font-size:14px;font-weight:600;">${m.name}</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--mono);">${m.stock} ${m.unit} in stock</div>
+    </div>`).join('');
+}
+
+function selectMvPart(id){
+  selectedMvPart=materials.find(x=>x.id===id);
+  document.getElementById('mvSearch').value=selectedMvPart.name;
+  document.getElementById('mvPartResults').style.display='none';
+  document.getElementById('mvPartName').textContent=selectedMvPart.name;
+  document.getElementById('mvPartStock').textContent=`Current stock: ${selectedMvPart.stock} ${selectedMvPart.unit}`;
+  document.getElementById('mvSelectedPart').style.display='block';
+  document.getElementById('mvQty').focus();
+}
+
+function logMovement(type){
+  if(!selectedMvPart){showToast('Select a part first','err');return;}
+  const qty=parseInt(document.getElementById('mvQty').value)||0;
+  if(qty<=0){showToast('Enter valid quantity','err');return;}
+  const m=selectedMvPart;
+  if(type==='OUT'&&m.stock<qty){showToast(`Only ${m.stock} available!`,'err');return;}
+  m.stock+=(type==='IN'?qty:-qty);
+  const supplier=document.getElementById('mvSupplier').value;
+  const note=document.getElementById('mvNote').value;
+  const detail=`${currentUser.name}${type==='IN'&&supplier?' · '+supplier:''}${note?' · '+note:''}`;
+  logActivity(`${m.name} — ${type==='IN'?'received':'dispatched'}`,detail,`${type==='IN'?'+':'−'}${qty}`,type==='IN'?'plus':'minus');
+  save();renderMovement();renderDashboard();
+  showToast(`${type==='IN'?'✓ Stock IN':'✕ Stock OUT'}: ${qty}× ${m.name}`,'ok');
+}
+
+function renderTodayMoves(){
+  const el=document.getElementById('todayMovements');
+  const today=activity.slice(0,10);
+  el.innerHTML=today.length?today.map(a=>`
+    <div class="act-row">
+      <div><div class="act-name">${a.name}</div><div class="act-meta">${a.detail} · ${a.time}</div></div>
+      <div class="act-qty ${a.type==='plus'?'act-plus':'act-minus'}">${a.qty}</div>
+    </div>`).join(''):'<div style="padding:16px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:12px;">No movements yet</div>';
+}
+
+function logActivity(name,detail,qty,type){
+  activity.unshift({name,detail,qty,type,time:getTime()});
+  if(activity.length>100) activity=activity.slice(0,100);
+}
+
+// ═══════════════════════════════════════════════
+// PRODUCTION & CAPACITY
+// ═══════════════════════════════════════════════
+function populateCapSelect(){
+  const sel=document.getElementById('capPumpSelect');
+  sel.innerHTML='<option value="">Choose pump model...</option>'+pumps.map(p=>`<option value="${p.id}">${p.icon} ${p.name}</option>`).join('');
+}
+
+function calcCapacity(){
+  const pumpId=document.getElementById('capPumpSelect').value;
+  const reserved=parseInt(document.getElementById('capReserved').value)||0;
+  if(!pumpId){showToast('Select a pump model','err');return;}
+  const pump=pumps.find(p=>p.id===pumpId);
+  const result=document.getElementById('capResult');
+  // calc available stock after reserving for planned orders
+  const matRows=pump.materials.map(bm=>{
+    const mat=materials.find(m=>m.id===bm.matId);
+    if(!mat) return null;
+    const reservedQty=bm.qty*reserved;
+    const available=Math.max(0,mat.stock-reservedQty);
+    const canMake=bm.qty>0?Math.floor(available/bm.qty):999;
+    return{mat,bm,reservedQty,available,canMake};
+  }).filter(Boolean);
+  const maxMake=Math.min(...matRows.map(r=>r.canMake));
+  const bottleneck=matRows.find(r=>r.canMake===maxMake&&maxMake<999);
+  result.innerHTML=`
+    <div class="cap-result">
+      <div class="cap-pump-name">${pump.icon} ${pump.name}</div>
+      <div class="cap-can-make">${maxMake}</div>
+      <div class="cap-units">units you can make right now</div>
+      ${reserved?`<div style="font-size:12px;color:var(--muted);font-family:var(--mono);margin-bottom:10px;">(After reserving ${reserved} units for planned orders)</div>`:''}
+      ${bottleneck?`<div class="cap-bottleneck">⚠️ <strong>Bottleneck:</strong> ${bottleneck.mat.name} — only ${bottleneck.available} available after reservation</div>`:''}
+      <div class="mat-check">
+        <div class="mat-check-title">Material Breakdown</div>
+        ${matRows.map(r=>`<div class="mat-row">
+          <span>${r.mat.name}</span>
+          <span>${r.canMake===0?`<span style="color:var(--danger);font-family:var(--mono);font-size:11px;">Can make 0</span>`:`<span style="color:var(--success);font-family:var(--mono);font-size:11px;">Can make ${r.canMake}</span>`}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function renderOrders(){
+  document.getElementById('orderCards').innerHTML=orders.map(o=>{
+    const pump=pumps.find(p=>p.id===o.pumpId);
+    if(!pump) return '';
+    const showCost=currentUser.role==='admin'||currentUser.role==='x';
+    const cost=calcBOMCost(pump);
+    const badge=o.status==='READY'?'b-ok':o.status==='IN PROGRESS'?'b-blue':'b-crit';
+    return `<div class="order-card">
+      <div class="order-top">
+        <div><div style="font-size:11px;font-family:var(--mono);color:var(--muted);">ORDER #${o.id}</div><div style="font-size:15px;font-weight:700;">${pump.icon} ${pump.name}</div></div>
+        <span class="badge ${badge}">${o.status}</span>
+      </div>
+      <div class="order-stats">
+        <div class="os-item"><div class="os-label">Qty</div><div class="os-val" style="color:var(--accent);">${o.qty}</div></div>
+        ${showCost?`<div class="os-item"><div class="os-label">Cost</div><div class="os-val" style="color:var(--accent);font-size:12px;">₹${(cost*o.qty/1000).toFixed(1)}K</div></div>
+        <div class="os-item"><div class="os-label">Profit</div><div class="os-val" style="color:var(--success);font-size:12px;">₹${((pump.sellPrice-cost)*o.qty/1000).toFixed(1)}K</div></div>`
+        :`<div class="os-item"><div class="os-label">Due</div><div class="os-val" style="font-size:11px;color:var(--muted);">${o.due}</div></div>`}
+      </div>
+      <div class="mat-check"><div class="mat-check-title">Material Check</div>
+        ${pump.materials.map(bm=>{
+          const mat=materials.find(m=>m.id===bm.matId);
+          if(!mat) return '';
+          const need=bm.qty*o.qty;const ok=mat.stock>=need;
+          return `<div class="mat-row"><span>${mat.name}</span><span>${ok?`<span class="mat-ok">✓ Have ${mat.stock}</span>`:`<span class="mat-short">Need ${need} · Have ${mat.stock}</span>`}</span></div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// BOM
+// ═══════════════════════════════════════════════
+function calcBOMCost(pump){
+  return pump.materials.reduce((sum,bm)=>{
+    const mat=materials.find(m=>m.id===bm.matId);
+    return sum+(mat?mat.price*bm.qty:0);
+  },0);
+}
+
+function renderBOM(){
+  if(currentUser.role!=='admin'&&currentUser.role!=='x') return;
+  document.getElementById('bomCards').innerHTML=pumps.map(pump=>{
+    const cost=calcBOMCost(pump);
+    const margin=pump.sellPrice>0?((pump.sellPrice-cost)/pump.sellPrice*100).toFixed(1):0;
+    return `<div class="bom-card">
+      <div class="bom-head">
+        <div class="bom-pump-name">${pump.icon} ${pump.name}</div>
+        <div class="bom-meta">
+          <span class="bom-cost-label">Cost:</span><span class="bom-val bom-val-cost"> ₹${cost.toLocaleString()}</span>
+          <span style="color:var(--border)"> | </span>
+          <span class="bom-cost-label">Sell:</span><span class="bom-val bom-val-margin"> ₹${pump.sellPrice.toLocaleString()} · ${margin}% margin</span>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn-sm btn-edit" onclick="editPump('${pump.id}')">✏ Edit BOM</button>
+          <button class="btn-sm btn-del" onclick="deletePump('${pump.id}')">Delete</button>
+        </div>
+      </div>
+      ${pump.materials.map(bm=>{
+        const mat=materials.find(m=>m.id===bm.matId);
+        if(!mat) return '';
+        return `<div class="bom-row"><span class="bom-part">${mat.name} × ${bm.qty}</span><span class="bom-part-cost">₹${(mat.price*bm.qty).toLocaleString()}</span></div>`;
+      }).join('')}
+      <div class="bom-footer"><span class="bom-footer-label">Selling Price</span><span class="bom-footer-val">₹${pump.sellPrice.toLocaleString()}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function openNewPump(){openPumpModal(null);}
+function editPump(id){openPumpModal(pumps.find(p=>p.id===id));}
+
+function openPumpModal(pump){
+  const isEdit=!!pump;
+  window._bomMats=pump?[...pump.materials.map(m=>({...m}))]: [{matId:'',qty:1}];
+  function renderRows(){
+    return window._bomMats.map((bm,i)=>`
+      <div class="bom-mat-row">
+        <select class="field" id="bm_m_${i}" style="margin-bottom:0;flex:1;">
+          <option value="">Select part...</option>
+          ${materials.map(m=>`<option value="${m.id}" ${m.id===bm.matId?'selected':''}>${m.name}</option>`).join('')}
+        </select>
+        <input class="field" id="bm_q_${i}" type="number" inputmode="numeric" value="${bm.qty}" min="1" style="width:70px;margin-bottom:0;" />
+        <button class="remove-mat-btn" onclick="removeBomRow(${i})">✕</button>
+      </div>`).join('');
+  }
+  window.removeBomRow=(i)=>{
+    saveBomRows();
+    if(window._bomMats.length<=1) return;
+    window._bomMats.splice(i,1);
+    document.getElementById('bomMatArea').innerHTML=renderRows();
+  };
+  window.addBomRow=()=>{
+    saveBomRows();
+    window._bomMats.push({matId:'',qty:1});
+    document.getElementById('bomMatArea').innerHTML=renderRows();
+  };
+  window.saveBomRows=()=>{
+    window._bomMats=window._bomMats.map((_,i)=>({
+      matId:document.getElementById('bm_m_'+i)?.value||'',
+      qty:parseInt(document.getElementById('bm_q_'+i)?.value)||1
+    }));
+  };
+  openModal(`
+    <div class="modal-title">${isEdit?'Edit Pump Model':'New Pump Model'}</div>
+    <div class="modal-sub">BOM Configuration</div>
+    <div class="field-label">Pump Name</div>
+    <input class="field" id="pName" value="${pump?.name||''}" placeholder="e.g. Big Flow 2HP" autocorrect="off" />
+    <div class="field-row" style="margin-bottom:10px;">
+      <div style="flex:0 0 80px;"><div class="field-label">Icon</div><input class="field" id="pIcon" value="${pump?.icon||'⚙️'}" /></div>
+      <div style="flex:1;"><div class="field-label">Selling Price ₹</div><input class="field" id="pSell" type="number" inputmode="numeric" value="${pump?.sellPrice||''}" /></div>
+    </div>
+    <div class="sec-label">Bill of Materials</div>
+    <div id="bomMatArea">${renderRows()}</div>
+    <button class="add-mat-line" onclick="addBomRow()">＋ Add Material</button>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmPump('${pump?.id||''}')">Save</button>
+    </div>`);
+}
+
+function confirmPump(existingId){
+  window.saveBomRows&&window.saveBomRows();
+  const name=document.getElementById('pName').value.trim();
+  if(!name){showToast('Enter pump name','err');return;}
+  const mats=window._bomMats.filter(bm=>bm.matId);
+  if(!mats.length){showToast('Add at least one material','err');return;}
+  const data={
+    id:existingId||'p'+Date.now(),
+    name,icon:document.getElementById('pIcon').value||'⚙️',
+    sellPrice:parseFloat(document.getElementById('pSell').value)||0,
+    materials:mats
+  };
+  if(existingId){const idx=pumps.findIndex(p=>p.id===existingId);pumps[idx]=data;}
+  else pumps.push(data);
+  save();closeModal();renderBOM();renderOrders();
+  showToast(`✓ ${name} saved`,'ok');
+}
+
+function deletePump(id){
+  const p=pumps.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-title">Delete Pump Model?</div>
+    <div class="modal-sub">This cannot be undone</div>
+    <div style="background:var(--surface2);border-radius:12px;padding:16px;margin-bottom:16px;font-size:15px;font-weight:700;">${p.icon} ${p.name}</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-danger-btn" onclick="confirmDeletePump('${id}')">Delete</button>
+    </div>`);
+}
+function confirmDeletePump(id){pumps=pumps.filter(x=>x.id!==id);save();closeModal();renderBOM();showToast('Deleted','warn');}
+
+// ═══════════════════════════════════════════════
+// PAYMENTS
+// ═══════════════════════════════════════════════
+function renderPayments(){
+  const totalOwe=payables.filter(p=>!p.paid).reduce((s,p)=>s+p.amount,0);
+  const totalOwe2=receivables.filter(r=>!r.paid).reduce((s,r)=>s+r.amount,0);
+  const net=totalOwe2-totalOwe;
+  document.getElementById('paySummary').innerHTML=`
+    <div class="pay-sum-item"><div class="pay-sum-label">We Owe</div><div class="pay-sum-val" style="color:var(--danger);">₹${(totalOwe/1000).toFixed(1)}K</div></div>
+    <div class="pay-sum-item"><div class="pay-sum-label">Owed To Us</div><div class="pay-sum-val" style="color:var(--success);">₹${(totalOwe2/1000).toFixed(1)}K</div></div>
+    <div class="pay-sum-item"><div class="pay-sum-label">Net Position</div><div class="pay-sum-val" style="color:${net>=0?'var(--success)':'var(--danger)'};">₹${(net/1000).toFixed(1)}K</div></div>`;
+  const today=new Date();
+  document.getElementById('supplierPayables').innerHTML=payables.map(p=>{
+    const due=new Date(p.dueDate);
+    const diff=Math.round((today-due)/(1000*60*60*24));
+    return `<div class="pay-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><div class="pay-name">${p.name}</div><div class="pay-detail">${p.detail}</div></div>
+        <span class="badge ${p.paid?'b-ok':diff>0?'b-crit':'b-blue'}">${p.paid?'PAID':diff>0?`${diff}d OVERDUE`:'PENDING'}</span>
+      </div>
+      <div class="pay-amount" style="color:${p.paid?'var(--success)':'var(--danger)'};">₹${p.amount.toLocaleString()}</div>
+      ${!p.paid?`<button class="btn-sm btn-add" onclick="markPaid('payable','${p.id}')">✓ Mark Paid</button>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('distributorReceivables').innerHTML=receivables.map(r=>{
+    const due=new Date(r.dueDate);
+    const diff=Math.round((today-due)/(1000*60*60*24));
+    return `<div class="pay-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><div class="pay-name">${r.name}</div><div class="pay-detail">${r.detail}</div></div>
+        <span class="badge ${r.paid?'b-ok':diff>0?'b-crit':'b-blue'}">${r.paid?'RECEIVED':diff>0?`${diff}d OVERDUE`:'PENDING'}</span>
+      </div>
+      <div class="pay-amount" style="color:${r.paid?'var(--success)':'var(--warn)'};">₹${r.amount.toLocaleString()}</div>
+      ${!r.paid?`<button class="btn-sm btn-add" onclick="markPaid('receivable','${r.id}')">✓ Mark Received</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function markPaid(type,id){
+  if(type==='payable'){const p=payables.find(x=>x.id===id);if(p)p.paid=true;}
+  else{const r=receivables.find(x=>x.id===id);if(r)r.paid=true;}
+  save();renderPayments();showToast('✓ Marked as paid','ok');
+}
+
+// ═══════════════════════════════════════════════
+// AI CHATBOT
+// ═══════════════════════════════════════════════
+async function sendChat(){
+  const input=document.getElementById('chatInput');
+  const msg=input.value.trim();
+  if(!msg) return;
+  input.value='';
+  addChatBubble(msg,'user');
+  addChatBubble('Thinking...','bot','...');
+  const context=buildContext();
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:`You are FISO Pumps' internal AI assistant for a pump manufacturing company in Coimbatore, India. Answer questions about inventory, production, payments, and operations. Be concise and helpful. Current inventory context: ${context}`,
+        messages:[{role:'user',content:msg}]
+      })
+    });
+    const data=await resp.json();
+    const reply=data.content?.map(c=>c.text||'').join('')||'Sorry, could not get a response.';
+    removeLast();
+    addChatBubble(reply,'bot');
+  }catch(e){
+    removeLast();
+    addChatBubble('Connection error. Check your internet and try again.','bot');
+  }
+}
+
+function buildContext(){
+  const low=materials.filter(m=>m.stock<m.minStock).map(m=>`${m.name}:${m.stock}/${m.minStock}`).join(',');
+  const totalOwe=payables.filter(p=>!p.paid).reduce((s,p)=>s+p.amount,0);
+  const totalOwed=receivables.filter(r=>!r.paid).reduce((s,r)=>s+r.amount,0);
+  return JSON.stringify({
+    totalSKUs:materials.length,
+    lowStock:low,
+    pumps:pumps.map(p=>p.name),
+    totalPayable:totalOwe,
+    totalReceivable:totalOwed,
+    recentActivity:activity.slice(0,5).map(a=>a.name)
+  });
+}
+
+function addChatBubble(text,side,id){
+  const msgs=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className=`chat-bubble ${side}`;
+  if(id) div.id='bubble_'+id;
+  div.innerHTML=`<div class="bubble-text">${text}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+function removeLast(){
+  const msgs=document.getElementById('chatMessages');
+  const last=msgs.querySelector('#bubble_...');
+  if(last) msgs.removeChild(last);
+}
+document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}});
+
+// ═══════════════════════════════════════════════
+// PROFILE
+// ═══════════════════════════════════════════════
+function renderProfile(){
+  document.getElementById('profileAvatar').textContent=currentUser.name.charAt(0).toUpperCase();
+  document.getElementById('profileUsername').textContent=currentUser.username;
+  document.getElementById('profileRole').textContent=ROLE_LABELS[currentUser.role]||currentUser.role;
+}
+
+function changeUsername(){
+  const newU=document.getElementById('newUsername').value.trim();
+  if(!newU){showToast('Enter new username','err');return;}
+  if(users.find(u=>u.username===newU&&u.id!==currentUser.id)){showToast('Username taken','err');return;}
+  currentUser.username=newU;
+  const u=users.find(x=>x.id===currentUser.id);
+  if(u) u.username=newU;
+  save();renderProfile();
+  document.getElementById('newUsername').value='';
+  showToast('✓ Username updated','ok');
+}
+
+function changePassword(){
+  const oldP=document.getElementById('oldPass').value;
+  const newP=document.getElementById('newPass').value;
+  if(oldP!==currentUser.password){showToast('Wrong current password','err');return;}
+  if(newP.length<6){showToast('Min 6 characters','err');return;}
+  currentUser.password=newP;
+  const u=users.find(x=>x.id===currentUser.id);
+  if(u) u.password=newP;
+  save();
+  document.getElementById('oldPass').value='';
+  document.getElementById('newPass').value='';
+  showToast('✓ Password updated','ok');
+}
+
+// ═══════════════════════════════════════════════
+// GOD MODE
+// ═══════════════════════════════════════════════
+function renderGodMode(){
+  // Users
+  document.getElementById('godUserList').innerHTML=users.filter(u=>u.role!=='x').map(u=>`
+    <div class="user-manage-row">
+      <div><div class="user-name-display">${u.name} <span style="font-size:11px;color:var(--muted);">@${u.username}</span></div><div class="user-role-display">${ROLE_LABELS[u.role]||u.role} · ${u.password}</div></div>
+      <div style="display:flex;gap:6px;">
+        <button class="btn-sm btn-edit" onclick="godEditUser('${u.id}')">Edit</button>
+        <button class="btn-sm btn-del" onclick="godDeleteUser('${u.id}')">Del</button>
+      </div>
+    </div>`).join('');
+  // Permissions
+  const roles=['staff','manager'];
+  const features=['movement','stock','production','bom','payments','chat'];
+  const featureLabels={movement:'Stock Move',stock:'View Stock',production:'Production',bom:'BOM',payments:'Payments',chat:'AI Chat'};
+  let permHtml='';
+  roles.forEach(r=>{
+    permHtml+=`<div style="margin-bottom:12px;"><div style="font-size:12px;font-family:var(--mono);color:var(--muted);margin-bottom:6px;">${ROLE_LABELS[r]}</div>`;
+    features.forEach(f=>{
+      const on=permissions[r]?.[f]!==false;
+      permHtml+=`<div class="god-toggle-row">
+        <span class="god-toggle-label">${featureLabels[f]}</span>
+        <div class="toggle ${on?'on':''}" onclick="togglePerm('${r}','${f}',this)"></div>
+      </div>`;
+    });
+    permHtml+='</div>';
+  });
+  document.getElementById('godPermissions').innerHTML=permHtml;
+  // Categories
+  document.getElementById('godCategoryList').innerHTML=categories.map((c,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(198,120,255,0.1);">
+      <span style="font-size:14px;">${c}</span>
+      <div style="display:flex;gap:6px;">
+        <button class="btn-sm btn-del" onclick="deleteCategory(${i})">Remove</button>
+      </div>
+    </div>`).join('');
+}
+
+function togglePerm(role,feature,el){
+  if(!permissions[role]) permissions[role]={};
+  const current=permissions[role][feature]!==false;
+  permissions[role][feature]=!current;
+  el.classList.toggle('on',!current);
+  save();buildNav();showToast('Permission updated','ok');
+}
+
+function godEditUser(id){
+  const u=users.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-title">Edit User</div>
+    <div class="modal-sub">${u.name}</div>
+    <div class="field-label">Display Name</div>
+    <input class="field" id="guName" value="${u.name}" autocorrect="off" />
+    <div class="field-label">Username</div>
+    <input class="field" id="guUser" value="${u.username}" autocorrect="off" autocapitalize="none" />
+    <div class="field-label">Password</div>
+    <input class="field" id="guPass" value="${u.password}" autocorrect="off" />
+    <div class="field-label">Role</div>
+    <select class="field" id="guRole">
+      <option value="staff" ${u.role==='staff'?'selected':''}>Store Staff</option>
+      <option value="manager" ${u.role==='manager'?'selected':''}>Manager</option>
+      <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+    </select>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmGodEditUser('${id}')">Save</button>
+    </div>`);
+}
+
+function confirmGodEditUser(id){
+  const u=users.find(x=>x.id===id);
+  u.name=document.getElementById('guName').value||u.name;
+  u.username=document.getElementById('guUser').value||u.username;
+  u.password=document.getElementById('guPass').value||u.password;
+  u.role=document.getElementById('guRole').value;
+  save();closeModal();renderGodMode();showToast('✓ User updated','ok');
+}
+
+function godDeleteUser(id){
+  openModal(`
+    <div class="modal-title">Delete User?</div>
+    <div class="modal-sub">They will lose access immediately</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-danger-btn" onclick="confirmGodDeleteUser('${id}')">Delete</button>
+    </div>`);
+}
+function confirmGodDeleteUser(id){
+  users=users.filter(x=>x.id!==id);
+  save();closeModal();renderGodMode();showToast('User deleted','warn');
+}
+
+function openAddUser(){
+  openModal(`
+    <div class="modal-title">Add New User</div>
+    <div class="modal-sub">FISO Pumps</div>
+    <div class="field-label">Display Name</div>
+    <input class="field" id="nuName" placeholder="e.g. Ravi Kumar" autocorrect="off" />
+    <div class="field-label">Username</div>
+    <input class="field" id="nuUser" placeholder="e.g. ravi.kumar" autocorrect="off" autocapitalize="none" />
+    <div class="field-label">Password</div>
+    <input class="field" id="nuPass" placeholder="min 6 characters" />
+    <div class="field-label">Role</div>
+    <select class="field" id="nuRole">
+      <option value="staff">Store Staff</option>
+      <option value="manager">Manager</option>
+      <option value="admin">Admin</option>
+    </select>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmAddUser()">Add User</button>
+    </div>`);
+}
+
+function confirmAddUser(){
+  const name=document.getElementById('nuName').value.trim();
+  const username=document.getElementById('nuUser').value.trim();
+  const password=document.getElementById('nuPass').value;
+  if(!name||!username||!password){showToast('Fill all fields','err');return;}
+  if(users.find(u=>u.username===username)){showToast('Username taken','err');return;}
+  users.push({id:'u'+Date.now(),username,password,role:document.getElementById('nuRole').value,name});
+  save();closeModal();renderGodMode();showToast('✓ User added','ok');
+}
+
+function openAddCategory(){
+  openModal(`
+    <div class="modal-title">Add Category</div>
+    <input class="field" id="newCat" placeholder="e.g. Filters" autocorrect="off" style="margin-top:10px;" />
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmAddCategory()">Add</button>
+    </div>`);
+}
+function confirmAddCategory(){
+  const c=document.getElementById('newCat').value.trim();
+  if(!c){showToast('Enter category name','err');return;}
+  categories.push(c);save();closeModal();renderGodMode();showToast('✓ Category added','ok');
+}
+function deleteCategory(i){
+  categories.splice(i,1);save();renderGodMode();showToast('Category removed','warn');
+}
+
+function setAccent(color){
+  document.documentElement.style.setProperty('--accent',color);
+  showToast('Color updated','ok');
+}
+
+function applyGodSettings(){
+  const name=document.getElementById('godAppName').value;
+  if(name){
+    document.querySelectorAll('.logo-main').forEach(el=>{el.innerHTML=name+' <span style="color:var(--accent)">ERP</span>';});
+  }
+  showToast('✓ Settings applied','ok');
+}
+
+function exportAllData(){
+  const data={materials,pumps,orders,payables,receivables,activity,users:users.map(u=>({...u,password:'[hidden]'}))};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='fiso_pumps_data.json';a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Data exported','ok');
+}
+
+function confirmReset(){
+  openModal(`
+    <div class="modal-title">Reset All Data?</div>
+    <div class="modal-sub">This will delete everything and cannot be undone</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-danger-btn" onclick="doReset()">Reset Everything</button>
+    </div>`);
+}
+function doReset(){
+  localStorage.clear();
+  closeModal();
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════
+// MODAL & TOAST
+// ═══════════════════════════════════════════════
+function openModal(html){
+  document.getElementById('modalBox').innerHTML=html;
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+function closeModal(){
+  document.getElementById('modalOverlay').classList.add('hidden');
+}
+document.getElementById('modalOverlay').addEventListener('click',function(e){
+  if(e.target===this) closeModal();
+});
+
+let toastTimer;
+function showToast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className=`toast t-${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
